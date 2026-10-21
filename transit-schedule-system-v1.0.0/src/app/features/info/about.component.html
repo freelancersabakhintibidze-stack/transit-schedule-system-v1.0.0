@@ -1,0 +1,96 @@
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">About the system</p>
+    <h1 class="display display--md">Schedule Notes</h1>
+    <p class="lede">
+      What this system publishes, how it is built, and where its boundaries are.
+      Everything on this page describes the application exactly as it is.
+    </p>
+  </header>
+
+  <div class="prose">
+    <section class="prose__section">
+      <h2 class="prose__heading"><span class="prose__index">01</span> Purpose</h2>
+      <p>
+        Meridian Transit is a public schedule information system for the fictional Meridian
+        network. It lets passengers discover routes by number, transport type, origin, or
+        destination; inspect the ordered stop sequence of any route; and query any stop to see
+        every active route serving it together with its upcoming departures. The interface is
+        built for quick, repeatable lookups rather than trip planning, and every screen presents
+        the same three controls consistently: a search or selection, a transport or day filter,
+        and a reference time.
+      </p>
+      <p>
+        The system runs entirely on a static, normalised dataset. That is a deliberate choice
+        for this release: it keeps the application honest about what it knows, makes it fully
+        reproducible in tests, and leaves the repository interface unchanged when a real
+        schedule API is introduced later.
+      </p>
+    </section>
+
+    <section class="prose__section">
+      <h2 class="prose__heading"><span class="prose__index">02</span> Planned timetables, not live tracking</h2>
+      <p>
+        Every departure time shown in this system is a <strong>published planned timetable</strong> entry.
+        The application does not ingest vehicle positions, does not estimate delays, and does not
+        predict arrivals. A departure listed at 08:12 is the time the operator has scheduled, not a
+        guarantee that a vehicle will leave at that second.
+      </p>
+      <p>
+        The "next departure" readout is computed from your selected reference time and the planned
+        timetable only. If the day's service has ended, the system states that plainly instead of
+        showing an optimistic countdown. This distinction between schedule and reality is repeated
+        on the timetable screens because it is the most important thing a schedule product must
+        communicate truthfully.
+      </p>
+    </section>
+
+    <section class="prose__section">
+      <h2 class="prose__heading"><span class="prose__index">03</span> How the data is organized</h2>
+      <p>
+        The dataset is strictly normalised into four entities, managed independently of one another:
+      </p>
+      <ul>
+        <li><strong>Route</strong>: number, transport type, origin and destination, and an active flag.</li>
+        <li><strong>Stop</strong>: name and address, identified by a stable numeric id.</li>
+        <li><strong>RouteStop</strong>: the join between routes and stops, with a sequence number that strictly dictates ordering.</li>
+        <li><strong>Departure</strong>: one planned time for a route on a day type.</li>
+      </ul>
+      <p>
+        Route numbers are display labels and are never used as primary identifiers, so a future
+        renumbering campaign cannot corrupt references. Day types are WEEKDAY, SATURDAY, and
+        SUNDAY_HOLIDAY. All comparisons are performed on minutes from midnight rather than on time
+        strings, and every dataset is validated and deep frozen before the application reads it.
+      </p>
+    </section>
+
+    <section class="prose__section">
+      <h2 class="prose__heading"><span class="prose__index">04</span> How the next departure is computed</h2>
+      <p>
+        Given a route, a day type, and your reference time, the engine converts all departure
+        strings of that route and day into minutes from midnight, sorts them once, and performs a
+        binary search for the first departure at or after the reference time. Exact matches are
+        returned as-is. When every departure has passed, the engine returns an explicit end of
+        service state and the interface displays it verbatim. Malformed times are filtered out
+        during validation and can never reach the comparison.
+      </p>
+      <p>
+        The reference time defaults to your device clock and refreshes as the clock advances until
+        you set a time yourself, which keeps the readout honest without any background polling of
+        vehicle data.
+      </p>
+    </section>
+
+    <section class="prose__section">
+      <h2 class="prose__heading"><span class="prose__index">05</span> Accessibility, performance, and privacy</h2>
+      <p>
+        The interface uses semantic tables and lists, visible focus states, aria-pressed segmented
+        controls, a skip link, and colour contrast that meets WCAG AA for text. Filtering and search
+        are computed synchronously over indexed data; the search and departure engine is exercised
+        in unit tests against a synthetic 500-route network. The application collects no personal
+        information, sets no cookies, and performs no telemetry; the only external requests it
+        makes are the typefaces loaded from Google Fonts, which are disclosed in the privacy policy.
+      </p>
+    </section>
+  </div>
+</section>

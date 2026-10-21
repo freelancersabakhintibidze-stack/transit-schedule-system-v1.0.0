@@ -1,0 +1,173 @@
+<section class="page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/">All routes</a>
+    <pt-icon name="arrow-right" [size]="12" />
+    <span>Timetable</span>
+  </nav>
+
+  @if (loading()) {
+    <div aria-busy="true" aria-label="Loading route">
+      <div class="route-head">
+        <span class="skel skel--badge" style="width: 104px; height: 76px"></span>
+        <span class="route-head__text">
+          <span class="skel skel--line" style="max-width: 420px"></span>
+          <span class="skel skel--line skel--short"></span>
+        </span>
+      </div>
+      <div class="controls"></div>
+      <div class="route-detail-grid">
+        <div class="panel">
+          @for (row of [0, 1, 2, 3, 4]; track row) {
+            <div class="timeline__item">
+              <span class="skel" style="width: 26px; height: 26px"></span>
+              <span class="skel skel--line skel--short"></span>
+            </div>
+          }
+        </div>
+        <div class="panel">
+          <div class="timetable">
+            @for (cell of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; track cell) {
+              <span class="skel" style="height: 40px"></span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else if (routeView(); as view) {
+    <header class="route-head">
+      <span class="route-badge route-badge--xl" [class.route-badge--minibus]="view.route.transportType === 'MINIBUS'">
+        {{ view.route.number }}
+      </span>
+      <div class="route-head__text">
+        <p class="eyebrow">Route {{ view.route.number }} · {{ typeLabel(view.route.transportType) }}</p>
+        <h1 class="display display--md">
+          {{ view.origin.name }}
+          <pt-icon name="arrow-right" [size]="22" />
+          {{ view.destination.name }}
+        </h1>
+        @if (!view.route.active) {
+          <p class="route-head__notice">
+            <pt-icon name="alert" [size]="14" />
+            This route is currently not in service. The timetable below is archived reference data.
+          </p>
+        }
+      </div>
+    </header>
+
+    <div class="controls controls--detail">
+      <div class="segmented" role="group" aria-label="Day type">
+        @for (day of dayOptions; track day) {
+          <button type="button" [attr.aria-pressed]="dayType() === day" (click)="setDayType(day)">
+            {{ dayLabel(day) }}
+          </button>
+        }
+      </div>
+      <div class="time-field">
+        <label for="reference-time">Reference time</label>
+        <input
+          id="reference-time"
+          #timeInput
+          type="time"
+          step="60"
+          [value]="selectedTime()"
+          (input)="onTimeInput(timeInput.value)"
+        />
+        <button type="button" class="btn btn--ghost btn--sm" (click)="useCurrentTime()">Now</button>
+      </div>
+    </div>
+
+    @if (nextResult(); as next) {
+      <section
+        class="next-panel"
+        [class.next-panel--ended]="next.status === 'after-last' || next.status === 'no-service' || next.status === 'invalid-time'"
+        aria-live="polite"
+      >
+        @switch (next.status) {
+          @case ('found') {
+            <p class="next-panel__label">Next scheduled departure</p>
+            <p class="next-panel__time">{{ next.time }}</p>
+            <p class="next-panel__meta">
+              in {{ next.minutesUntil }} min · reference time {{ selectedTime() }} · {{ dayLabel(dayType()) }}
+            </p>
+            @if (following().length > 1) {
+              <p class="next-panel__then">Then {{ thenList() }}</p>
+            }
+          }
+          @case ('after-last') {
+            <p class="next-panel__label">End of service</p>
+            <p class="next-panel__time next-panel__time--muted">No further departures scheduled for today</p>
+            <p class="next-panel__meta">
+              Last departure {{ departures().length > 0 ? departures()[departures().length - 1].departureTime : '-' }}
+              · reference time {{ selectedTime() }} · {{ dayLabel(dayType()) }}
+            </p>
+          }
+          @case ('no-service') {
+            <p class="next-panel__label">No service</p>
+            <p class="next-panel__time next-panel__time--muted">No departures published for this day type</p>
+          }
+          @case ('invalid-time') {
+            <p class="next-panel__label">Reference time</p>
+            <p class="next-panel__time next-panel__time--muted">Enter a valid time between 00:00 and 23:59</p>
+          }
+        }
+      </section>
+    }
+
+    <div class="route-detail-grid">
+      <section class="panel">
+        <h2 class="panel__title">Stop sequence</h2>
+        <ol class="timeline">
+          @for (stop of stops(); track stop.id; let first = $first; let last = $last; let index = $index) {
+            <li class="timeline__item">
+              <span class="timeline__node" [class.timeline__node--terminal]="first || last">{{ index + 1 }}</span>
+              <div class="timeline__body">
+                <a class="timeline__stop" [routerLink]="['/stops', stop.id]">{{ stop.name }}</a>
+                <span class="timeline__address">{{ stop.address }}</span>
+              </div>
+              @if (first) {
+                <span class="timeline__tag">Start</span>
+              }
+              @if (last) {
+                <span class="timeline__tag timeline__tag--end">End</span>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">Departures · {{ dayLabel(dayType()) }}</h2>
+        @if (departures().length === 0) {
+          <p class="panel__empty">No departures are published for this route on {{ dayLabel(dayType()) }}.</p>
+        } @else {
+          <div class="timetable" role="list" aria-label="Departure times for the selected day">
+            @for (departure of departures(); track departure.id; let index = $index) {
+              <span
+                role="listitem"
+                class="time-cell"
+                [class.time-cell--past]="isPast(departure)"
+                [class.time-cell--next]="index === nextIndex()"
+              >
+                {{ departure.departureTime }}
+                @if (index === nextIndex()) {
+                  <span class="time-cell__flag">Next</span>
+                }
+              </span>
+            }
+          </div>
+          <p class="panel__foot">
+            {{ departures().length }} departures · first {{ departures()[0].departureTime }} · last
+            {{ departures()[departures().length - 1].departureTime }}
+          </p>
+        }
+      </section>
+    </div>
+  } @else {
+    <pt-empty-state code="404" title="Route not found" actionLabel="Back to all routes" (action)="goHome()">
+      <p>
+        No route exists for this identifier. The route may have been withdrawn,
+        or the link may be outdated.
+      </p>
+    </pt-empty-state>
+  }
+</section>

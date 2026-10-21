@@ -1,0 +1,129 @@
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Public schedule information system</p>
+    <h1 class="display">Timetables</h1>
+    <p class="lede">
+      Browse the Meridian network by route or stop. Search by route number or stop name,
+      filter by transport type and day, then open any schedule.
+    </p>
+  </header>
+
+  <aside class="advisory" role="note">
+    <pt-icon name="clock" [size]="18" />
+    <p>
+      <strong>Planned timetables.</strong>
+      Departure times are published schedules for each day type. This system does not track
+      vehicles or predict live arrivals.
+    </p>
+  </aside>
+
+  <div class="controls">
+    <div class="search">
+      <pt-icon name="search" [size]="18" />
+      <input
+        #searchInput
+        type="search"
+        id="route-search"
+        placeholder="Route number or stop name"
+        aria-label="Search routes by route number or stop name"
+        autocomplete="off"
+        spellcheck="false"
+        [value]="searchTerm()"
+        (input)="onSearchInput(searchInput.value)"
+      />
+      @if (searchTerm() !== '') {
+        <button type="button" class="search__clear" aria-label="Clear search" (click)="onSearchInput('')">
+          <pt-icon name="close" [size]="14" />
+        </button>
+      }
+    </div>
+    <div class="segmented" role="group" aria-label="Transport type filter">
+      @for (option of transportOptions; track option.value) {
+        <button type="button" [attr.aria-pressed]="transportFilter() === option.value" (click)="setTransport(option.value)">
+          {{ option.label }}
+        </button>
+      }
+    </div>
+    <div class="segmented" role="group" aria-label="Day type filter">
+      @for (option of dayOptions; track option.value) {
+        <button type="button" [attr.aria-pressed]="dayType() === option.value" (click)="setDayType(option.value)">
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (stopSuggestions().length > 0) {
+    <div class="stop-suggestions">
+      <p class="stop-suggestions__label">Stops matching your search</p>
+      <ul>
+        @for (stop of stopSuggestions(); track stop.id) {
+          <li>
+            <a [routerLink]="['/stops', stop.id]">
+              <pt-icon name="pin" [size]="14" />
+              {{ stop.name }}
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  @if (networkLoading()) {
+    <div class="route-list" aria-busy="true" aria-label="Loading routes">
+      @for (row of skeletonRows; track row) {
+        <div class="route-row route-row--skeleton">
+          <span class="skel skel--badge"></span>
+          <span class="route-row__info">
+            <span class="skel skel--line"></span>
+            <span class="skel skel--line skel--short"></span>
+          </span>
+        </div>
+      }
+    </div>
+  } @else if (filteredSummaries(); as list) {
+    @if (list.length === 0) {
+      <pt-empty-state code="No results" title="No routes match your search" actionLabel="Reset filters" (action)="resetFilters()">
+        <p>
+          No route number, origin, or destination matches the current search and filters.
+          Reset to view the full network for {{ dayLabel(dayType()) }} service.
+        </p>
+      </pt-empty-state>
+    } @else {
+      <div class="route-list">
+        <p class="route-list__meta">
+          {{ list.length }} of {{ summaries()?.length }} routes · {{ dayLabel(dayType()) }} service
+        </p>
+        @for (summary of list; track summary.route.id) {
+          <article class="route-row">
+            <a class="route-row__main" [routerLink]="['/routes', summary.route.id]">
+              <span class="route-badge" [class.route-badge--minibus]="summary.route.transportType === 'MINIBUS'">
+                {{ summary.route.number }}
+              </span>
+              <span class="route-row__info">
+                <span class="route-row__path">
+                  <span class="route-row__terminus">{{ summary.origin.name }}</span>
+                  <pt-icon name="arrow-right" [size]="13" />
+                  <span class="route-row__terminus">{{ summary.destination.name }}</span>
+                </span>
+                <span class="route-row__meta">
+                  @if (summary.departureCount > 0) {
+                    First {{ summary.firstDeparture }} · Last {{ summary.lastDeparture }} ·
+                    {{ summary.departureCount }} departures · {{ summary.stopCount }} stops
+                  } @else {
+                    No service on this day type
+                  }
+                </span>
+              </span>
+            </a>
+            <span class="type-chip">{{ typeLabel(summary.route.transportType) }}</span>
+            <a class="route-row__action" [routerLink]="['/routes', summary.route.id]">
+              View Schedule
+              <pt-icon name="arrow-up-right" [size]="14" />
+            </a>
+          </article>
+        }
+      </div>
+    }
+  }
+</section>

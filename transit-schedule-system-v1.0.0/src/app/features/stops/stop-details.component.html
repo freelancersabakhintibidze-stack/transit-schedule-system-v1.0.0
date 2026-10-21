@@ -1,0 +1,120 @@
+<section class="page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/stops">All stops</a>
+    <pt-icon name="arrow-right" [size]="12" />
+    <span>Departures</span>
+  </nav>
+
+  @if (loading()) {
+    <div aria-busy="true" aria-label="Loading stop">
+      <div class="page-head">
+        <span class="skel skel--line" style="max-width: 320px"></span>
+        <span class="skel skel--line skel--short"></span>
+      </div>
+      <div class="controls"></div>
+      <div class="route-list" style="margin-top: 24px">
+        @for (row of [0, 1, 2, 3]; track row) {
+          <div class="route-row route-row--skeleton">
+            <span class="skel skel--badge" style="width: 52px"></span>
+            <span class="route-row__info">
+              <span class="skel skel--line"></span>
+              <span class="skel skel--line skel--short"></span>
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  } @else if (stop(); as currentStop) {
+    <header class="page-head">
+      <p class="eyebrow">Stop</p>
+      <h1 class="display display--md">{{ currentStop.name }}</h1>
+      <p class="lede" style="display: flex; align-items: center; gap: 8px">
+        <pt-icon name="pin" [size]="15" />
+        {{ currentStop.address }} · {{ board().length }} active routes serve this stop
+      </p>
+    </header>
+
+    <div class="controls controls--detail">
+      <div class="segmented" role="group" aria-label="Day type">
+        @for (day of dayOptions; track day) {
+          <button type="button" [attr.aria-pressed]="dayType() === day" (click)="setDayType(day)">
+            {{ dayLabel(day) }}
+          </button>
+        }
+      </div>
+      <div class="time-field">
+        <label for="stop-reference-time">Reference time</label>
+        <input
+          id="stop-reference-time"
+          #timeInput
+          type="time"
+          step="60"
+          [value]="selectedTime()"
+          (input)="onTimeInput(timeInput.value)"
+        />
+        <button type="button" class="btn btn--ghost btn--sm" (click)="useCurrentTime()">Now</button>
+      </div>
+    </div>
+
+    @if (board().length === 0) {
+      <pt-empty-state code="No service" title="No active routes serve this stop">
+        <p>
+          This stop is not currently served by any active route in the network.
+          It may be planned for future service or temporarily withdrawn.
+        </p>
+      </pt-empty-state>
+    } @else {
+      <table class="data-table" style="margin-top: 24px">
+        <thead>
+          <tr>
+            <th scope="col">Route</th>
+            <th scope="col">Towards</th>
+            <th scope="col">Type</th>
+            <th scope="col">Next</th>
+            <th scope="col">Then</th>
+            <th scope="col"><span class="sr-only">Schedule link</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of board(); track entry.route.id) {
+            <tr>
+              <td>
+                <a class="table-route" [routerLink]="['/routes', entry.route.id]">
+                  <span class="route-badge route-badge--sm" [class.route-badge--minibus]="entry.route.transportType === 'MINIBUS'">
+                    {{ entry.route.number }}
+                  </span>
+                </a>
+              </td>
+              <td>{{ entry.towards?.name ?? 'Unknown terminus' }}</td>
+              <td><span class="type-chip">{{ typeLabel(entry.route.transportType) }}</span></td>
+              <td>
+                @if (firstUpcoming(entry); as first) {
+                  <span class="time-strong">{{ first.departureTime }}</span>
+                } @else {
+                  <span class="time-none">None today</span>
+                }
+              </td>
+              <td>
+                @if (secondUpcoming(entry); as second) {
+                  <span class="time-soft">{{ second.departureTime }}</span>
+                } @else {
+                  <span class="time-soft">-</span>
+                }
+              </td>
+              <td>
+                <a class="table-action" [routerLink]="['/routes', entry.route.id]">
+                  View Schedule
+                  <pt-icon name="arrow-up-right" [size]="13" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  } @else {
+    <pt-empty-state code="404" title="Stop not found" actionLabel="Back to all stops" (action)="goStops()">
+      <p>No stop exists for this identifier. Open the stop directory to browse the full network.</p>
+    </pt-empty-state>
+  }
+</section>

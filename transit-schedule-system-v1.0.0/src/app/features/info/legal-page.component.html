@@ -1,0 +1,29 @@
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Legal</p>
+    <h1 class="display display--md">{{ document().title }}</h1>
+    <p class="prose__meta">{{ document().updated }}</p>
+  </header>
+
+  <div class="prose">
+    <section class="prose__section">
+      <p><strong>{{ document().intro }}</strong></p>
+    </section>
+
+    @for (section of document().sections; track section.heading) {
+      <section class="prose__section">
+        <h2 class="prose__heading">{{ section.heading }}</h2>
+        @for (paragraph of section.paragraphs; track $index) {
+          <p>{{ paragraph }}</p>
+        }
+        @if (section.bullets; as bullets) {
+          <ul>
+            @for (bullet of bullets; track $index) {
+              <li>{{ bullet }}</li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+</section>

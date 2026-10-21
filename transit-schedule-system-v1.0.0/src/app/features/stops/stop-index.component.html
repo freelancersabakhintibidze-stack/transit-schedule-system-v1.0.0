@@ -1,0 +1,60 @@
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Stop directory</p>
+    <h1 class="display display--md">Stops</h1>
+    <p class="lede">Every stop in the Meridian network. Open a stop to see all routes serving it and their next departures.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="route-list" aria-busy="true" aria-label="Loading stops">
+      @for (row of [0, 1, 2, 3, 4, 5]; track row) {
+        <div class="stop-row">
+          <span class="skel skel--line"></span>
+          <span class="skel skel--line skel--short" style="width: 90px"></span>
+        </div>
+      }
+    </div>
+  } @else if (stops(); as list) {
+    <div class="search" style="margin-top: 24px">
+      <pt-icon name="search" [size]="18" />
+      <input
+        #searchInput
+        type="search"
+        id="stop-search"
+        placeholder="Stop name or address"
+        aria-label="Search stops by name or address"
+        autocomplete="off"
+        spellcheck="false"
+        [value]="searchTerm()"
+        (input)="onSearchInput(searchInput.value)"
+      />
+      @if (searchTerm() !== '') {
+        <button type="button" class="search__clear" aria-label="Clear search" (click)="onSearchInput('')">
+          <pt-icon name="close" [size]="14" />
+        </button>
+      }
+    </div>
+
+    @if (list.length === 0) {
+      <pt-empty-state code="No results" title="No stops match your search">
+        <p>No stop name or address contains the search term. Clear the search to view the full directory.</p>
+      </pt-empty-state>
+    } @else {
+      <div class="route-list">
+        <p class="route-list__meta">{{ list.length }} of {{ stopsSize() }} stops</p>
+        @for (entry of list; track entry.stop.id) {
+          <a class="stop-row" [routerLink]="['/stops', entry.stop.id]">
+            <span>
+              <span class="stop-row__name">{{ entry.stop.name }}</span>
+              <span class="stop-row__address">{{ entry.stop.address }}</span>
+            </span>
+            <span class="stop-row__count">
+              {{ entry.routeCount }} {{ entry.routeCount === 1 ? 'route' : 'routes' }}
+            </span>
+            <pt-icon name="arrow-right" [size]="15" />
+          </a>
+        }
+      </div>
+    }
+  }
+</section>
